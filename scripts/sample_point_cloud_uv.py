@@ -11,7 +11,7 @@ def sample_with_uv(mesh):
     pass
 
 
-mesh = trimesh.load_mesh('dataset/model_fixed.obj')
+mesh = trimesh.load_mesh('resources/3d_models/001/model_fixed.obj')
 
 points = mesh.sample(2048)
 
