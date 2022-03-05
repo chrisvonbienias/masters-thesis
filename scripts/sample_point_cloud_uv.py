@@ -6,7 +6,9 @@ from matplotlib import pyplot as plt
 
 trimesh.util.attach_to_log()
 
-
+# Point sampling of 3D mesh.
+# A modified version of trimesh.sample with UV color sampling
+# Returns an array n*6 [x, y, z, r, g, b]
 def sample_with_uv(mesh):
     pass
 
@@ -14,6 +16,7 @@ def sample_with_uv(mesh):
 mesh = trimesh.load_mesh('resources/3d_models/001/model_fixed.obj')
 
 points = mesh.sample(2048)
+points_uv = sample_with_uv(mesh)
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection="3d")
