@@ -12,6 +12,10 @@ trimesh.util.attach_to_log()
 def sample_with_uv(mesh):
     pass
 
+# Alternatively, we can use the non-colored points and use
+# their coordinates to sample the uv map
+# TODO
+# Check how to sample textures!
 
 mesh = trimesh.load_mesh('resources/3d_models/001/model_fixed.obj')
 
