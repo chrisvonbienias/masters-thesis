@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # Project directiories
-
+masters-thesis
 
 # Some weird macos shit
 resources/.DS_Store
