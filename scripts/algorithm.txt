@@ -1,0 +1,6 @@
+PROPOSED ALGORITHM FOR 3D POINT SAMPLING
+
+For each triangle in triangles:
+    vertices = (3, 3) vertices of the triangle
+    indexes = (3, 1) indexes of vertices\
+    
