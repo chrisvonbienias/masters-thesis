@@ -3,6 +3,7 @@
 import trimesh
 import numpy as np
 from matplotlib import pyplot as plt
+from sample_point_cloud_exp import sample_surface
 
 trimesh.util.attach_to_log()
 
@@ -19,11 +20,15 @@ def sample_with_uv(mesh):
 
 mesh = trimesh.load_mesh('resources/3d_models/001/model_fixed.obj')
 
-points = mesh.sample(2048)
+# points = mesh.sample(2048)
+points, face_indices = sample_surface(mesh, 2048)
+print(points)
 points_uv = sample_with_uv(mesh)
 
+'''
 fig = plt.figure()
 ax = fig.add_subplot(111, projection="3d")
 ax.scatter(points[:, 0], points[:, 1], points[:, 2])
 ax.set_axis_off()
 plt.show()
+'''
