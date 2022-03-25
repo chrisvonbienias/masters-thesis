@@ -1,34 +1,10 @@
 # Scripts for sampling a 3D mesh with UV colour information
 
-import trimesh
-import numpy as np
-from matplotlib import pyplot as plt
-from sample_point_cloud_exp import sample_surface
+import pymeshlab as pml
 
-trimesh.util.attach_to_log()
+mesh = pml.MeshSet()
+mesh.load_new_mesh('resources/3d_models/001/model_fixed.obj')
+mesh.generate_sampling_montecarlo(samplenum=2048)
+mesh.transfer_texture_to_color_per_vertex(sourcemesh=0, targetmesh=1)
+mesh.save_current_mesh('resources/3d_models/001/model_fixed.ply')
 
-# Point sampling of 3D mesh.
-# A modified version of trimesh.sample with UV color sampling
-# Returns an array n*6 [x, y, z, r, g, b]
-def sample_with_uv(mesh):
-    pass
-
-# Alternatively, we can use the non-colored points and use
-# their coordinates to sample the uv map
-# TODO
-# Check how to sample textures!
-
-mesh = trimesh.load_mesh('resources/3d_models/001/model_fixed.obj')
-
-# points = mesh.sample(2048)
-points, face_indices = sample_surface(mesh, 2048)
-print(points)
-points_uv = sample_with_uv(mesh)
-
-'''
-fig = plt.figure()
-ax = fig.add_subplot(111, projection="3d")
-ax.scatter(points[:, 0], points[:, 1], points[:, 2])
-ax.set_axis_off()
-plt.show()
-'''
