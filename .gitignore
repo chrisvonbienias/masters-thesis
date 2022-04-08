@@ -130,8 +130,7 @@ dmypy.json
 
 # Project directiories
 masters-thesis
-/.polyscope.ini
-/imgui.ini
+/resources/3d_models/
 
 # Some weird macos shit
 resources/.DS_Store
