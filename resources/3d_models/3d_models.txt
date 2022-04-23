@@ -1,5 +1,0 @@
-Database of 3D models
-
-Every folder, numbered 001 to 999, contains a ShapeNet 3D model and it's textures.
-If needed, there also is a fixed version "model_fixed.obj", because some models contain two materials and it breaks everything...
-
