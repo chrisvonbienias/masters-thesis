@@ -131,8 +131,9 @@ dmypy.json
 # Project directiories
 masters-thesis
 /resources/3d_models/
+/resources/dataset/
+/.idea/
 
 # Some weird macos shit
 resources/.DS_Store
 */.DS_Store
-
