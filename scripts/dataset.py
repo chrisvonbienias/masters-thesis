@@ -22,7 +22,7 @@ def split_dataset() -> None:
     for data in tqdm(train_set, desc="Moving training dataset"):
         src = models_dir + data
         dst = train_dir + data
-        copyfile(src, dst)A
+        copyfile(src, dst)
 
     for data in tqdm(test_set, desc="Moving testing dataset"):
         src = models_dir + data
