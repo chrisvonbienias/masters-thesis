@@ -6,14 +6,15 @@ class PCN(nn.Module):
     """
     "PCN: Point Cloud Completion Network"
     (https://arxiv.org/pdf/1808.00671.pdf)
+    !!! Modified input layer !!!
     Attributes:
-        num_dense:  16384
+        num_dense:  2048
         latent_dim: 1024
         grid_size:  4
         num_coarse: 1024
     """
 
-    def __init__(self, num_dense=16384, latent_dim=1024, grid_size=4):
+    def __init__(self, num_dense=2048, latent_dim=1024, grid_size=4):
         super().__init__()
 
         self.num_dense = num_dense
