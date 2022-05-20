@@ -136,7 +136,7 @@ masters-thesis
 
 # Some weird macos shit
 resources/.DS_Store
-*/.DS_Store
-resources/datasets/.DS_Store
-resources/.DS_Store
+resources/*/.DS_Store
+models/.DS_Store
+scripts/.DS_Store
 .DS_Store
