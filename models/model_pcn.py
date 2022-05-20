@@ -26,7 +26,7 @@ class PCN(nn.Module):
         self.num_coarse = self.num_dense // (self.grid_size ** 2)
 
         self.first_conv = nn.Sequential(
-            nn.Conv1d(3, 128, 1),
+            nn.Conv1d(6, 128, 1),
             nn.BatchNorm1d(128),
             nn.ReLU(inplace=True),
             nn.Conv1d(128, 256, 1)
