@@ -3,7 +3,7 @@ import torch.optim as Optim
 
 from models import PCN
 
-def train():
+def train() -> None:
     pass
 
 

@@ -12,7 +12,7 @@ class ShapeNet(data.Dataset):
 
         self.data_path = data_path
         self.split = split
-        self.paths = self.load_data()
+        self.paths = self._load_data()
 
     def __len__(self):
         pass
@@ -20,6 +20,6 @@ class ShapeNet(data.Dataset):
     def __getitem__(self, index):
         pass
 
-    def load_data(self):
+    def _load_data(self):
         pass
 
