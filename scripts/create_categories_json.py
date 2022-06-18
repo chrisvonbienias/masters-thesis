@@ -7,6 +7,8 @@ models_path = 'resources/3d_models'
 categories = os.listdir(models_path)
 cat_dict = {}
 
+f = open('resources/model_list.txt', 'a')
+
 train_count = 0
 test_count = 0
 valid_count = 0
@@ -23,6 +25,10 @@ for category in categories:
     test_count += len(test)
     valid_count += len(validate)
     cat_dict[category] = [*train, *test, *validate]
+
+    f.writelines(f'{category}/{model}\n' for model in models)
+
+f.close()
 
 with open('resources/categories.json', 'w') as f:
     json.dump(cat_dict, f)
