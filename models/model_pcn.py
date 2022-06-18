@@ -6,7 +6,7 @@ class PCN(nn.Module):
     """
     "PCN: Point Cloud Completion Network"
     (https://arxiv.org/pdf/1808.00671.pdf)
-    !!! Modified input layer !!!
+    !!! Modified input and output layers !!!
     Attributes:
         num_dense:  16384
         latent_dim: 1024
@@ -72,17 +72,17 @@ class PCN(nn.Module):
         feature_global = torch.max(feature,dim=2,keepdim=False)[0]                           # (B, 1024)
         
         # decoder
-        coarse = self.mlp(feature_global).reshape(-1, self.num_coarse, 3)                    # (B, num_coarse, 3), coarse point cloud
-        point_feat = coarse.unsqueeze(2).expand(-1, -1, self.grid_size ** 2, -1)             # (B, num_coarse, S, 3)
-        point_feat = point_feat.reshape(-1, self.num_dense, 3).transpose(2, 1)               # (B, 3, num_fine)
+        coarse = self.mlp(feature_global).reshape(-1, self.num_coarse, 6)                    # (B, num_coarse, 6), coarse point cloud
+        point_feat = coarse.unsqueeze(2).expand(-1, -1, self.grid_size ** 2, -1)             # (B, num_coarse, S, 6)
+        point_feat = point_feat.reshape(-1, self.num_dense, 6).transpose(2, 1)               # (B, 6, num_fine)
 
         seed = self.folding_seed.unsqueeze(2).expand(B, -1, self.num_coarse, -1)             # (B, 2, num_coarse, S)
         seed = seed.reshape(B, -1, self.num_dense)                                           # (B, 2, num_fine)
 
         feature_global = feature_global.unsqueeze(2).expand(-1, -1, self.num_dense)          # (B, 1024, num_fine)
-        feat = torch.cat([feature_global, seed, point_feat], dim=1)                          # (B, 1024+2+3, num_fine)
+        feat = torch.cat([feature_global, seed, point_feat], dim=1)                          # (B, 1024+2+6, num_fine)
     
-        fine = self.final_conv(feat) + point_feat                                            # (B, 3, num_fine), fine point cloud
+        fine = self.final_conv(feat) + point_feat                                            # (B, 6, num_fine), fine point cloud
 
         return coarse.contiguous(), fine.transpose(1, 2).contiguous()
         
