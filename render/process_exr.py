@@ -25,7 +25,7 @@ import array
 import numpy as np
 import os
 from open3d import *
-
+from tqdm import tqdm
 
 def read_exr(exr_path, height, width):
     file = OpenEXR.InputFile(exr_path)
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     width = int(intrinsics[0, 2] * 2)
     height = int(intrinsics[1, 2] * 2)
 
-    for model_id in model_list:
+    for model_id in tqdm(model_list, desc='Processing images'):
         depth_dir = os.path.join(args.output_dir, 'depth', model_id)
         pcd_dir = os.path.join(args.output_dir, 'pcd', model_id)
         os.makedirs(depth_dir, exist_ok=True)
@@ -72,11 +72,11 @@ if __name__ == '__main__':
             pose_path = os.path.join(args.output_dir, 'pose', model_id, '%d.txt' % i)
 
             depth = read_exr(exr_path, height, width)
-            depth_img = Image(np.uint16(depth * 1000))
-            write_image(os.path.join(depth_dir, '%d.png' % i), depth_img)
+            depth_img = open3d.geometry.Image(np.uint16(depth * 1000))
+            open3d.io.write_image(os.path.join(depth_dir, '%d.png' % i), depth_img)
 
             pose = np.loadtxt(pose_path)
             points = depth2pcd(depth, intrinsics, pose)
-            pcd = PointCloud()
-            pcd.points = Vector3dVector(points)
-            write_point_cloud(os.path.join(pcd_dir, '%d.pcd' % i), pcd)
+            pcd = open3d.geometry.PointCloud()
+            pcd.points = open3d.utility.Vector3dVector(points)
+            open3d.io.write_point_cloud(os.path.join(pcd_dir, '%d.ply' % i), pcd)

@@ -90,16 +90,25 @@ if __name__ == '__main__':
     with open(os.path.join(list_path)) as file:
         model_list = [line.strip() for line in file]
     open('blender.log', 'w+').close()
-    os.system('rm -rf %s' % output_dir)
+    # os.system('rm -rf %s' % output_dir)
     os.makedirs(output_dir, exist_ok=True)
     np.savetxt(os.path.join(output_dir, 'intrinsics.txt'), intrinsics, '%f')
 
+    total = len(model_list)
+    j = -1
+
     for model_id in model_list:
+        j = j+1
+
         start = time.time()
         exr_dir = os.path.join(output_dir, 'exr', model_id)
         pose_dir = os.path.join(output_dir, 'pose', model_id)
         os.makedirs(exr_dir, exist_ok=True)
         os.makedirs(pose_dir, exist_ok=True)
+
+        if os.path.exists(os.path.join(exr_dir, '0.exr')):
+            print(f'{model_id} passed. {j}/{total}')
+            continue
 
         # Redirect output to log file
         old_os_out = os.dup(1)
@@ -107,11 +116,15 @@ if __name__ == '__main__':
         os.open('blender.log', os.O_WRONLY)
 
         # Import mesh model
-        model_path = os.path.join(model_dir, model_id, 'model.obj')
+        if 'models' in os.path.join(model_dir, model_id):
+            model_path = os.path.join(model_dir, model_id, 'models', 'model_normalized.obj')
+        else:
+            model_path = os.path.join(model_dir, model_id, 'model_normalized.obj')
+
         bpy.ops.import_scene.obj(filepath=model_path)
 
         # Rotate model by 90 degrees around x-axis (z-up => y-up) to match ShapeNet's coordinates
-        bpy.ops.transform.rotate(value=-np.pi / 2, axis=(1, 0, 0))
+        bpy.ops.transform.rotate(value=-np.pi / 2, orient_axis='X')
 
         # Render
         for i in range(num_scans):
@@ -131,7 +144,10 @@ if __name__ == '__main__':
             bpy.data.materials.remove(m)
 
         # Show time
+        
         os.close(1)
         os.dup(old_os_out)
         os.close(old_os_out)
-        print(f'{model_id} done, time={time.time() - start} sec')
+        print(f'{model_id} done, time={time.time() - start} sec. {j}/{total}')
+        
+        

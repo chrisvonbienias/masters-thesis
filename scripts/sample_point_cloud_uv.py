@@ -13,7 +13,7 @@ def main() -> None:
     categories = os.listdir(models_path)
     save_path = 'resources/dataset'
 
-    for category in tqdm(categories[46:]):
+    for category in tqdm(categories):
         cat_path = f'{models_path}/{category}'
         models = os.listdir(cat_path)
 
