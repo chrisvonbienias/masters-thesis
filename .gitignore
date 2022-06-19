@@ -133,6 +133,7 @@ masters-thesis
 /resources/3d_models/
 /resources/dataset/
 /.idea/
+resources/depth_images
 
 # Some weird macos shit
 resources/.DS_Store
