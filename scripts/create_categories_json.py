@@ -36,4 +36,4 @@ with open('resources/categories.json', 'w') as f:
 print(f'Train: {train_count}')
 print(f'Test: {test_count}')
 print(f'Validate: {valid_count}')
-print(f'Finished!')
+print(f'Total: {train_count+test_count+valid_count}')
