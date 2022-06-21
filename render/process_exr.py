@@ -32,6 +32,7 @@ def read_exr(exr_path, height, width):
     depth_arr = array.array('f', file.channel('R', Imath.PixelType(Imath.PixelType.FLOAT)))
     depth = np.array(depth_arr).reshape((height, width))
     depth[depth < 0] = 0
+    depth[depth > 65500] = 0
     depth[np.isinf(depth)] = 0
     return depth
 
@@ -79,4 +80,7 @@ if __name__ == '__main__':
             points = depth2pcd(depth, intrinsics, pose)
             pcd = open3d.geometry.PointCloud()
             pcd.points = open3d.utility.Vector3dVector(points)
-            open3d.io.write_point_cloud(os.path.join(pcd_dir, '%d.ply' % i), pcd)
+            if pcd.is_empty():
+                print(f'{model_id} has no points!')
+            else:
+                open3d.io.write_point_cloud(os.path.join(pcd_dir, '%d.ply' % i), pcd)

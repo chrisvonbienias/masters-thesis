@@ -106,6 +106,11 @@ if __name__ == '__main__':
         os.makedirs(exr_dir, exist_ok=True)
         os.makedirs(pose_dir, exist_ok=True)
 
+        if not os.path.exists(os.path.join(model_dir, model_id, 'models', 'model_normalized.obj')):
+            print(f'{model_id} does not exist. {j}/{total}')
+            os.system('rm -rf %s' % os.path.join(model_dir, model_id))
+            continue
+
         if os.path.exists(os.path.join(exr_dir, '0.exr')):
             print(f'{model_id} passed. {j}/{total}')
             continue
@@ -142,9 +147,14 @@ if __name__ == '__main__':
         for m in bpy.data.materials:
             m.user_clear()
             bpy.data.materials.remove(m)
+        for m in bpy.data.textures:
+            bpy.data.textures.remove(m)
+        for m in bpy.data.images:
+            if m.users == 0:
+                bpy.data.images.remove(m)
+
 
         # Show time
-        
         os.close(1)
         os.dup(old_os_out)
         os.close(old_os_out)
