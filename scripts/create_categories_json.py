@@ -7,7 +7,7 @@ models_path = 'resources/3d_models'
 categories = os.listdir(models_path)
 cat_dict = {}
 
-f = open('resources/model_list.txt', 'a')
+f = open('resources/model_list.txt', 'w')
 
 train_count = 0
 test_count = 0
