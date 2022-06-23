@@ -47,9 +47,10 @@ class ShapeNet(data.Dataset):
             index = index.tolist()
 
         path = self.paths[index]
-        vertices = self.read_point_cloud(f'{self.data_path}/{path}.ply')
+        complete = self.read_point_cloud(f'{self.data_path}/complete/{path}.ply')
+        partial = self.read_point_cloud(f'{self.data_path}/partial/{path}.ply')
 
-        return torch.from_numpy(vertices)
+        return torch.from_numpy(complete), torch.from_numpy(partial)
         
     def load_data(self) -> List[str]:
         categories = json.load(open('./resources/categories.json'))
@@ -67,6 +68,11 @@ class ShapeNet(data.Dataset):
 
         for cat in categories:
             for model in cat:
+                if not os.path.exists(f'resources/dataset/complete/{model[0]}.ply'):
+                    continue
+                if not os.path.exists(f'resources/dataset/partial/{model[0]}.ply'):
+                    continue
+
                 if model[1] == self.split:
                     paths.append(model[0])
 
@@ -80,8 +86,8 @@ class ShapeNet(data.Dataset):
         vertices[:, 1] = ply['vertex'].data['y']
         vertices[:, 2] = ply['vertex'].data['z']
         vertices[:, 3] = np.interp(ply['vertex'].data['red'], [0, 255], [0, 1])
-        vertices[:, 4] = np.interp(ply['vertex'].data['blue'], [0, 255], [0, 1])
-        vertices[:, 5] = np.interp(ply['vertex'].data['green'], [0, 255], [0, 1])
+        vertices[:, 4] = np.interp(ply['vertex'].data['green'], [0, 255], [0, 1])
+        vertices[:, 5] = np.interp(ply['vertex'].data['blue'], [0, 255], [0, 1])
 
         return vertices
 
