@@ -1,1 +1,1 @@
-from shapenet import ShapeNet
+from dataset.shapenet import ShapeNet
