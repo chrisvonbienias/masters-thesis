@@ -1,16 +1,9 @@
-FROM python:3.10.4
+FROM nvidia/cuda:10.1-devel-ubuntu18.04
 
-RUN pip install virtualenv
-ENV VIRTUAL_ENV=/venv 
-RUN virtualenv venv -p python3
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+COPY . /app
 
-WORKDIR /masters-thesis
-ADD . /masters-thesis
+RUN apt-get -y update && apt-get install -y python3.8 && apt-get install -y python3-pip && pip3 install virtualenv && apt-get install -y python3.8-dev
+RUN virtualenv -p python3.8 app/.venv
 
-# dependencies
-RUN pip install -r requirements.txt
-
-# run training / testing
-ARG MODE=train.py
-CMD python MODE
+# Requirements
+RUN . app/.venv/bin/activate && pip3 install torch==1.7+cu101 -f https://download.pytorch.org/whl/torch_stable.html

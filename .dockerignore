@@ -1,4 +1,5 @@
 .idea
 venv
 resources/3d_models
+resources/depth_images
 resources/dataset
