@@ -14,7 +14,7 @@ class PCN(nn.Module):
         num_coarse: 1024
     """
 
-    def __init__(self, num_dense=16384, latent_dim=1024, grid_size=4):
+    def __init__(self, num_dense=8192, latent_dim=1024, grid_size=4):
         super().__init__()
 
         self.num_dense = num_dense
@@ -44,17 +44,17 @@ class PCN(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(1024, 1024),
             nn.ReLU(inplace=True),
-            nn.Linear(1024, 3 * self.num_coarse)
+            nn.Linear(1024, 6 * self.num_coarse)
         )
 
         self.final_conv = nn.Sequential(
-            nn.Conv1d(1024 + 3 + 2, 512, 1),
+            nn.Conv1d(1024 + 6 + 2, 512, 1),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
             nn.Conv1d(512, 512, 1),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
-            nn.Conv1d(512, 3, 1)
+            nn.Conv1d(512, 6, 1)
         )
         a = torch.linspace(-0.05, 0.05, steps=self.grid_size, dtype=torch.float).view(1, self.grid_size).expand(self.grid_size, self.grid_size).reshape(1, -1)
         b = torch.linspace(-0.05, 0.05, steps=self.grid_size, dtype=torch.float).view(self.grid_size, 1).expand(self.grid_size, self.grid_size).reshape(1, -1)
