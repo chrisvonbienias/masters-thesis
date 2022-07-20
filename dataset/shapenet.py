@@ -1,6 +1,6 @@
 import os
 import random
-from typing import List
+from typing import Any, List
 
 import torch
 import torch.utils.data as data
@@ -10,13 +10,9 @@ import json
 
 class ShapeNet(data.Dataset):
     
-    def __init__(self, data_path, split) -> None:
+    def __init__(self, data_path, split, num_dense=8192) -> None:
         assert split in ["train", "test_seen", "test_unseen", "validate"], "split error value!"
-
-        self.data_path = data_path
-        self.split = split
-        self.paths = self.load_data()
-
+        
         self.seen_cat = [
             "02691156",  # airplane
             "02933112",  # cabinet
@@ -38,19 +34,29 @@ class ShapeNet(data.Dataset):
             "04225987",  # skateboard
             "03948459",  # pistol
         ]
+        
+        self.data_path = data_path
+        self.split = split
+        self.num_dense = num_dense
+        self.paths = self.load_data()
+        
 
     def __len__(self) -> int:
         return len(self.paths)
+    
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> tuple:
         if torch.is_tensor(index):
             index = index.tolist()
 
         path = self.paths[index]
-        complete = self.read_point_cloud(f'{self.data_path}/complete/{path}.ply')
-        partial = self.read_point_cloud(f'{self.data_path}/partial/{path}.ply')
+        complete_path = f'{self.data_path}/complete/{path}.ply'
+        partial_path = f'{self.data_path}/partial/{path}.ply'
+        complete = self.random_sample(self.read_point_cloud(complete_path), self.num_dense)
+        partial = self.random_sample(self.read_point_cloud(partial_path), self.num_dense // 4)
 
         return torch.from_numpy(complete), torch.from_numpy(partial)
+    
         
     def load_data(self) -> List[str]:
         categories = json.load(open('./resources/categories.json'))
@@ -66,7 +72,7 @@ class ShapeNet(data.Dataset):
         if self.split == "test_unseen" or self.split == "test_seen":
             self.split = "test"
 
-        for cat in categories:
+        for cat in categories.values():
             for model in cat:
                 if not os.path.exists(f'resources/dataset/complete/{model[0]}.ply'):
                     continue
@@ -77,6 +83,7 @@ class ShapeNet(data.Dataset):
                     paths.append(model[0])
 
         return paths
+
 
     def read_point_cloud(self, path):
         ply = plyfile.PlyData.read(path)
@@ -91,3 +98,9 @@ class ShapeNet(data.Dataset):
 
         return vertices
 
+
+    def random_sample(self, pc, n) -> Any:
+        idx = np.random.permutation(pc.shape[0])
+        if idx.shape[0] < n:
+            idx = np.concatenate([idx, np.random.randint(pc.shape[0], size=n-pc.shape[0])])
+        return pc[idx[:n]]
