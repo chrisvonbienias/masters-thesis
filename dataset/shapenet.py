@@ -1,5 +1,4 @@
 import os
-import random
 from typing import Any, List
 
 import torch
@@ -7,6 +6,7 @@ import torch.utils.data as data
 import numpy as np
 import plyfile
 import json
+from skimage.color import rgb2lab
 
 class ShapeNet(data.Dataset):
     
@@ -92,12 +92,12 @@ class ShapeNet(data.Dataset):
         vertices[:, 0] = ply['vertex'].data['x']
         vertices[:, 1] = ply['vertex'].data['y']
         vertices[:, 2] = ply['vertex'].data['z']
-        vertices[:, 3] = np.interp(ply['vertex'].data['red'], [0, 255], [0, 1])
-        vertices[:, 4] = np.interp(ply['vertex'].data['green'], [0, 255], [0, 1])
-        vertices[:, 5] = np.interp(ply['vertex'].data['blue'], [0, 255], [0, 1])
+        vertices[:, 3] = ply['vertex'].data['red']
+        vertices[:, 4] = ply['vertex'].data['green']
+        vertices[:, 5] = ply['vertex'].data['blue']
+        vertices[:, 3:] = rgb2lab(vertices[:, 3:] / 255, illuminant='D65') / 100
 
         return vertices
-
 
     def random_sample(self, pc, n) -> Any:
         idx = np.random.permutation(pc.shape[0])
