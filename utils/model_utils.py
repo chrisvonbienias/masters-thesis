@@ -1,16 +1,9 @@
-import math
-import os
-import sys
-
-import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 from .metrics import cd, emd, fscore
 
 
-def calc_dcd(x, gt, alpha=1000, n_lambda=1, return_raw=False, non_reg=False):
+def calc_dcd(x, gt, alpha=1, n_lambda=1, return_raw=False, non_reg=False):
     x = x.float()
     gt = gt.float()
     batch_size, n_x, _ = x.shape
