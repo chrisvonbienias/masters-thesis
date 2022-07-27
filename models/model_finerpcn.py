@@ -3,6 +3,7 @@ from threading import local
 import torch
 import torch.nn as nn
 from pytorch3d.ops import sample_farthest_points, knn_points, knn_gather
+from torchsummary import summary
 
 class FinerPCN(nn.Module):
     
@@ -55,9 +56,11 @@ class FinerPCN(nn.Module):
         
     def forward(self, xyz):
         B, N, _ = xyz.shape
+        assert xyz.isnan().any() == False, 'Found NaN'
         
         # encoder 1
         feature = self.mlpConv256(xyz.transpose(2, 1))                                       # (B, 256, N)
+        assert feature.isnan().any() == False, 'Found NaN'
         feature_global = torch.max(feature, dim=2, keepdim=True)[0]                          # (B, 256, 1)
         feature = torch.cat([feature_global.expand(-1, -1, N), feature], dim=1)              # (B, 512, N)
         feature = self.mlpConv1024(feature)                                                  # (B, 1024, N)
@@ -74,6 +77,7 @@ class FinerPCN(nn.Module):
         distance = knn_points(coarse2, coarse2, K=16)                                          
         density = knn_gather(coarse2, distance[1])                                           # (B, 1024, 16, 6)
         density = torch.exp(-density / (0.34 ** 2))
+        assert density.isnan().any() == False, 'Found NaN'
         density = torch.mean(density, dim=2)                                                 # (B, 1024, 6)
         density = self.mlpConv256(density.transpose(2, 1))                                   # (B, 256, 1024)
         
@@ -110,4 +114,11 @@ class FinerPCN(nn.Module):
         fine = torch.reshape(folding, (B, self.num_dense, 6))
         
         return coarse.contiguous(), fine.contiguous()
-        
+      
+      
+if __name__ == '__main__':
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = FinerPCN().to(device)
+    pt = torch.randn((2, 2048, 6), device=device)
+    coarse, dense = model(pt)
+    # summary(model, (2048, 6))  

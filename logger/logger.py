@@ -12,6 +12,7 @@ class Logger():
         self.train_data = []
         self.val_data = []
         self.test_data = []
+        self.best_data = []
   
         
     def plot(self, epoch):
@@ -35,11 +36,13 @@ class Logger():
         if self.test:
             columns = {
                 "Test loss": self.test_data,
+                "Best": self.best_data
             }
         else:
             columns = {
                 "Training loss": self.train_data,
-                "Validation loss": self.val_data
+                "Validation loss": self.val_data,
+                "Best": self.best_data
             }
             
         data = pd.DataFrame(columns)

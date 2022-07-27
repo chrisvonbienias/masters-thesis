@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torchsummary import summary
 
 
 class PCN(nn.Module):
@@ -8,7 +9,7 @@ class PCN(nn.Module):
     (https://arxiv.org/pdf/1808.00671.pdf)
     !!! Modified input and output layers !!!
     Attributes:
-        num_dense:  16384
+        num_dense:  8192
         latent_dim: 1024
         grid_size:  4
         num_coarse: 1024
@@ -86,3 +87,8 @@ class PCN(nn.Module):
 
         return coarse.contiguous(), fine.transpose(1, 2).contiguous()
         
+        
+if __name__ == '__main__':
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = PCN(num_dense=8192, latent_dim=1024, grid_size=4).to(device)
+    summary(model, (2048, 6))
