@@ -1,9 +1,8 @@
-from math import dist
-from threading import local
 import torch
 import torch.nn as nn
 from pytorch3d.ops import sample_farthest_points, knn_points, knn_gather
 from torchsummary import summary
+
 
 class FinerPCN(nn.Module):
     
@@ -16,68 +15,70 @@ class FinerPCN(nn.Module):
         self.num_coarse = self.num_dense // (self.grid_size ** 2)
         
         self.mlpConv256 = nn.Sequential(
-            nn.Conv1d(6, 128, 1),
-            nn.BatchNorm1d(128),
+            nn.Conv1d(6, 128, 1, bias=False),
             nn.ReLU(inplace=True),
+            nn.BatchNorm1d(128),
             nn.Conv1d(128, 256, 1)
         )
         
         self.mlpConv512 = nn.Sequential(
-            nn.Conv1d(256, 512, 1),
+            nn.Conv1d(256, 512, 1, bias=False),
+            nn.ReLU(inplace=True),
             nn.BatchNorm1d(512),
-            nn.ReLU(inplace=True)
         )
 
         self.mlpConv1024 = nn.Sequential(
-            nn.Conv1d(512, 512, 1),
-            nn.BatchNorm1d(512),
+            nn.Conv1d(512, 512, 1, bias=False),
             nn.ReLU(inplace=True),
+            nn.BatchNorm1d(512),
             nn.Conv1d(512, 1024, 1)
         )
         
         self.mlpConvFinal = nn.Sequential(
-            nn.Conv1d(1024, 512, 1),
+            nn.Conv1d(1024, 512, 1, bias=False),
+            nn.ReLU(inplace=True),
             nn.BatchNorm1d(512),
+            nn.Conv1d(512, 256, 1, bias=False),
             nn.ReLU(inplace=True),
-            nn.Conv1d(512, 256, 1),
             nn.BatchNorm1d(256),
-            nn.ReLU(inplace=True),
             nn.Conv1d(256, 48, 1)
         )
         
         self.mlp = nn.Sequential(
             nn.Linear(1024, 1024),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
             nn.Linear(1024, 1024),
             nn.ReLU(inplace=True),
-            nn.Linear(1024, 6 * self.num_coarse)
+            nn.Dropout(0.5),
+            nn.Linear(1024, 6 * self.num_coarse),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
         )
         
         
     def forward(self, xyz):
         B, N, _ = xyz.shape
-        assert xyz.isnan().any() == False, 'Found NaN'
+        
         
         # encoder 1
         feature = self.mlpConv256(xyz.transpose(2, 1))                                       # (B, 256, N)
-        assert feature.isnan().any() == False, 'Found NaN'
         feature_global = torch.max(feature, dim=2, keepdim=True)[0]                          # (B, 256, 1)
         feature = torch.cat([feature_global.expand(-1, -1, N), feature], dim=1)              # (B, 512, N)
         feature = self.mlpConv1024(feature)                                                  # (B, 1024, N)
         feature_global = torch.max(feature,dim=2,keepdim=False)[0]                           # (B, 1024)
         
         # decoder 1
-        coarse = self.mlp(feature_global).reshape(-1, self.num_coarse, 6)                    # (B, 512, N)
-        coarse = torch.cat([coarse, xyz], dim=1)                                             # (B, 512+2048, N)
+        coarse = self.mlp(feature_global).reshape(-1, self.num_coarse, 6)                    # (B, coarse, 6)
+        coarse2 = torch.cat([coarse, xyz], dim=1)                                            # (B, coarse+2048, 6)
         
         # farthest point sampling
-        coarse2 = sample_farthest_points(coarse, K=1024)[0]                                  # (B, 1024, 6)
+        coarse2 = sample_farthest_points(coarse2, K=1024)[0]                                  # (B, 1024, 6)
         
         # local density
         distance = knn_points(coarse2, coarse2, K=16)                                          
         density = knn_gather(coarse2, distance[1])                                           # (B, 1024, 16, 6)
-        density = torch.exp(-density / (0.34 ** 2))
-        assert density.isnan().any() == False, 'Found NaN'
+        density = torch.exp(- density / (0.34 ** 2))
         density = torch.mean(density, dim=2)                                                 # (B, 1024, 6)
         density = self.mlpConv256(density.transpose(2, 1))                                   # (B, 256, 1024)
         
@@ -119,6 +120,4 @@ class FinerPCN(nn.Module):
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = FinerPCN().to(device)
-    pt = torch.randn((2, 2048, 6), device=device)
-    coarse, dense = model(pt)
-    # summary(model, (2048, 6))  
+    summary(model, (2048, 6))  
