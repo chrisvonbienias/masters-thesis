@@ -11,35 +11,37 @@ class PointAutoEncoder(nn.Module):
         
         self.conv2d_64a = nn.Sequential(
             nn.Conv2d(self.num_dense, 64, kernel_size=(6, 1), bias=False),
+            nn.ReLU(inplace=True),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True)
         )
         
         self.conv2d_64b = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=(1, 1), bias=False),
+            nn.ReLU(inplace=True),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True)
         )
         
         self.conv2d_128 = nn.Sequential(
             nn.Conv2d(64, 128, kernel_size=(1, 1), bias=False),
+            nn.ReLU(inplace=True),
             nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True)
         )
         
         self.conv2d_1024 = nn.Sequential(
             nn.Conv2d(128, 1024, kernel_size=(1, 1), bias=False),
-            nn.BatchNorm2d(1024),
             nn.ReLU(inplace=True),
+            nn.BatchNorm2d(1024),
         )
         
         self.decoder = nn.Sequential(
             nn.Linear(1024, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
             nn.Linear(1024, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
             nn.Linear(1024, self.num_dense * 6),
             nn.BatchNorm1d(self.num_dense * 6),
             nn.ReLU(inplace=True),
