@@ -15,45 +15,43 @@ class FinerPCN(nn.Module):
         self.num_coarse = self.num_dense // (self.grid_size ** 2)
         
         self.mlpConv256 = nn.Sequential(
-            nn.Conv1d(6, 128, 1, bias=False),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm1d(128),
+            nn.Conv1d(6, 128, 1),
+            nn.PReLU(),
+            # nn.batchNorm1d(128),
             nn.Conv1d(128, 256, 1)
         )
         
         self.mlpConv512 = nn.Sequential(
-            nn.Conv1d(256, 512, 1, bias=False),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm1d(512),
+            nn.Conv1d(256, 512, 1),
+            nn.PReLU(),
+            # nn.batchNorm1d(512),
         )
 
         self.mlpConv1024 = nn.Sequential(
-            nn.Conv1d(512, 512, 1, bias=False),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm1d(512),
+            nn.Conv1d(512, 512, 1),
+            nn.PReLU(),
+            # nn.batchNorm1d(512),
             nn.Conv1d(512, 1024, 1)
         )
         
         self.mlpConvFinal = nn.Sequential(
-            nn.Conv1d(1024, 512, 1, bias=False),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm1d(512),
-            nn.Conv1d(512, 256, 1, bias=False),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm1d(256),
+            nn.Conv1d(1024, 512, 1),
+            nn.PReLU(),
+            # nn.batchNorm1d(512),
+            nn.Conv1d(512, 256, 1),
+            nn.PReLU(),
+            # nn.batchNorm1d(256),
             nn.Conv1d(256, 48, 1)
         )
         
         self.mlp = nn.Sequential(
             nn.Linear(1024, 1024),
-            nn.ReLU(inplace=True),
+            nn.PReLU(),
             nn.Dropout(0.5),
             nn.Linear(1024, 1024),
-            nn.ReLU(inplace=True),
+            nn.PReLU(),
             nn.Dropout(0.5),
-            nn.Linear(1024, 6 * self.num_coarse),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
+            nn.Linear(1024, 6 * self.num_coarse)
         )
         
         
@@ -79,6 +77,7 @@ class FinerPCN(nn.Module):
         distance = knn_points(coarse2, coarse2, K=16)                                          
         density = knn_gather(coarse2, distance[1])                                           # (B, 1024, 16, 6)
         density = torch.exp(- density / (0.34 ** 2))
+        density = torch.nan_to_num(density, nan=0.0, posinf=0.0, neginf=0.0)
         density = torch.mean(density, dim=2)                                                 # (B, 1024, 6)
         density = self.mlpConv256(density.transpose(2, 1))                                   # (B, 256, 1024)
         
