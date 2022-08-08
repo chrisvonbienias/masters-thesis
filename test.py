@@ -14,8 +14,8 @@ from train import NUM_DENSE
 from utils.model_utils import calc_dcd, calc_cd
 
 BATCH_SIZE = 32
-MODEL_NAME = 'PCN'
-MODEL_PATH = 'checkpoint/PCN/PCN_DCD_7_26_13:33.pth'
+MODEL_NAME = 'FinerPCN'
+MODEL_PATH = 'checkpoint/FinerPCN/FinerPCN_CD_7_28_19:23.pth'
 NUM_DENSE = 8192
 
 def read_point_cloud(path):
@@ -79,7 +79,7 @@ def test() -> None:
             seen_loss += loss
             i += 1
             
-        seen_loss /= i
+        seen_loss = seen_loss / i
         i = 0
         
         for c, p in tqdm(test_unseen_dataloader, desc='Testing unseen...'):
@@ -92,7 +92,7 @@ def test() -> None:
             unseen_loss += loss
             i += 1
             
-        unseen_loss /= i
+        unseen_loss = unseen_loss / i
             
     print(f'Seen loss: {seen_loss}')
     print(f'Unseen loss: {unseen_loss}')
