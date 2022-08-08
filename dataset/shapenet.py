@@ -10,7 +10,7 @@ from skimage.color import rgb2lab
 
 class ShapeNet(data.Dataset):
     
-    def __init__(self, data_path, split, num_dense=8192) -> None:
+    def __init__(self, data_path, split, num_dense=8192, subset=None) -> None:
         assert split in ["train", "test_seen", "test_unseen", "validate"], "split error value!"
         
         self.seen_cat = [
@@ -38,6 +38,7 @@ class ShapeNet(data.Dataset):
         self.data_path = data_path
         self.split = split
         self.num_dense = num_dense
+        self.subset = subset
         self.paths = self.load_data()
         
 
@@ -81,8 +82,11 @@ class ShapeNet(data.Dataset):
 
                 if model[1] == self.split:
                     paths.append(model[0])
+                    
+        if self.subset is not None:
+            paths = self.random_sample(np.asarray(paths), len(paths) // self.subset)
 
-        return paths
+        return list(paths)
 
 
     def read_point_cloud(self, path):
