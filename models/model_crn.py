@@ -1,5 +1,6 @@
 from math import log2, sqrt
 from typing import List
+from debugpy import debug_this_thread
 
 import torch
 import torch.nn as nn
@@ -8,7 +9,7 @@ from torchsummary import summary
 from pytorch3d.ops import sample_farthest_points, ball_query, knn_gather
 
 
-class CVPR_Generator(nn.Module):
+class CRN_Generator(nn.Module):
     def __init__(self, num_dense=8192, num_coarse=1024, latent_dim=1024):
         super().__init__()
         
@@ -34,8 +35,10 @@ class CVPR_Generator(nn.Module):
             
         self.mlp = nn.Sequential(
             nn.Linear(self.latent_dim, 1024),
+            nn.Dropout(),
             nn.ReLU(inplace=True),
             nn.Linear(1024, 1024),
+            nn.Dropout(),
             nn.ReLU(inplace=True),
             nn.Linear(1024, self.num_coarse * 6),
         )
@@ -60,6 +63,7 @@ class CVPR_Generator(nn.Module):
         self.features = nn.Sequential(
             nn.Linear(1024, 128),
             nn.BatchNorm1d(128),
+            nn.Dropout(),
             nn.ReLU(inplace=True)
         )
         
@@ -155,7 +159,7 @@ class CVPR_Generator(nn.Module):
         return coarse.contiguous(), fine.transpose(2, 1).contiguous()
  
 
-class CVPR_Discriminator(nn.Module):
+class CRN_Discriminator(nn.Module):
     def __init__(self, radius_list: List[int]=[0.1, 0.2, 0.4], nsample_list: List[int]=[16, 32, 128]):
         super().__init__()
         assert len(nsample_list) == len(radius_list) 
@@ -238,5 +242,8 @@ class CVPR_Discriminator(nn.Module):
         
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = CVPR_Discriminator().to(device)
+    model = CRN_Discriminator().to(device)
     summary(model, (8192, 6))
+    model = CRN_Generator().to(device)
+    summary(model, (2048, 6))
+    

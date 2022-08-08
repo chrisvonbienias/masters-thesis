@@ -5,17 +5,17 @@ import torch
 import torch.optim as Optim
 from torch.utils.data.dataloader import DataLoader
 
-from models import CVPR_Generator, CVPR_Discriminator
+from models import CRN_Generator, CRN_Discriminator
 from dataset import ShapeNet
 from logger import Logger
 from utils.model_utils import  calc_cd, calc_dcd
 
 # hyperparameters
 DEBUG = False
-EPOCHS = 50
+EPOCHS = 40
 BATCH_SIZE = 16
 LEARNING_RATE = 0.001
-LOSS = 'CD'
+LOSS = 'DCD'
 NUM_DENSE = 8192
 NUM_WORKERS = 8
 ALPHA = 0.5
@@ -44,8 +44,8 @@ def train() -> None:
     
     # time stamp
     time_stamp = localtime(time())
-    save_path_gen = f'checkpoint/CVPR/CVPR_GEN_{LOSS}_{time_stamp.tm_mon}_{time_stamp.tm_mday}_{time_stamp.tm_hour}:{time_stamp.tm_min}'
-    save_path_disc = f'checkpoint/CVPR/CVPR_DICS_{LOSS}_{time_stamp.tm_mon}_{time_stamp.tm_mday}_{time_stamp.tm_hour}:{time_stamp.tm_min}'
+    save_path_gen = f'checkpoint/CRN/CRN_GEN_{LOSS}_{time_stamp.tm_mon}_{time_stamp.tm_mday}_{time_stamp.tm_hour}:{time_stamp.tm_min}'
+    save_path_disc = f'checkpoint/CRN/CRN_DICS_{LOSS}_{time_stamp.tm_mon}_{time_stamp.tm_mday}_{time_stamp.tm_hour}:{time_stamp.tm_min}'
 
     # datasets
     train_dataset = ShapeNet(data_path, "train", num_dense=NUM_DENSE)
@@ -58,13 +58,13 @@ def train() -> None:
     print('Dataloaders ready!')
 
     # model
-    model_gen = CVPR_Generator(num_dense=NUM_DENSE).to(device)
-    model_disc = CVPR_Discriminator().to(device)
+    model_gen = CRN_Generator(num_dense=NUM_DENSE).to(device)
+    model_disc = CRN_Discriminator().to(device)
     
     # load model.state_dict
     if LOAD:
-        model_gen.load_state_dict(torch.load(''))
-        model_disc.load_state_dict(torch.load(''))
+        model_gen.load_state_dict(torch.load('checkpoint/CRN/CRN_GEN_DCD_8_1_20:0.pth'))
+        model_disc.load_state_dict(torch.load('checkpoint/CRN/CRN_DICS_DCD_8_1_20:0.pth'))
     
     # optimizer
     # optimizer = Optim.Adam(model.parameters(), lr=LEARNING_RATE)
@@ -75,12 +75,12 @@ def train() -> None:
     lr_schedual_disc = Optim.lr_scheduler.ReduceLROnPlateau(optimizer_disc, 'min', patience = 5)
     
     # logger
-    logger_gen = Logger(EPOCHS, model_name='CVPR_Generator')
-    logger_disc = Logger(EPOCHS, model_name='CVPR_Discriminator')
+    logger_gen = Logger(EPOCHS, model_name='CRN_Generator')
+    logger_disc = Logger(EPOCHS, model_name='CRN_Discriminator')
     print('Logger ready!')
 
     # training
-    best_val_gen = 100
+    best_val_gen = 100 
     best_val_disc = 100
     for epoch in tqdm(range(1, EPOCHS + 1), desc='Epoch', position=0):
         
@@ -101,8 +101,8 @@ def train() -> None:
             dense_pred = dense_pred.to(device)
 
             # loss function
-            loss1 = torch.mean(calc_cd(dense_pred, c)[0]).to(device)
-            loss2 = torch.mean(calc_cd(coarse_pred, c)[0]).to(device)
+            loss1 = torch.mean(calc_dcd(dense_pred, c)[0]).to(device)
+            loss2 = torch.mean(calc_dcd(coarse_pred, c)[0]).to(device)
             loss_gen = loss1 + ALPHA * loss2
 
             
@@ -121,8 +121,8 @@ def train() -> None:
             loss_disc2 = torch.mean((loss_fake - 1) ** 2)
             
             ### TOTAL LOSS
-            loss_gen  = loss_disc1 + loss_gen * 200
-            loss_disc = loss_disc2
+            loss_gen  = loss_disc2 + loss_gen
+            loss_disc = loss_disc1
             
             ### BACK PROPAGATION
             optimizer_gen.zero_grad(set_to_none=True)
@@ -139,8 +139,8 @@ def train() -> None:
             
             i += 1
 
-        logger_gen.train_data.append(float(train_loss_gen / i))
-        logger_disc.train_data.append(float(train_loss_disc / i))
+        logger_gen.train_data.append(train_loss_gen / i)
+        logger_disc.train_data.append(train_loss_disc / i)
 
         # evaluation
         model_gen.eval()
@@ -161,16 +161,16 @@ def train() -> None:
                 d_fake = model_disc(dense_pred)
                 d_fake = d_fake.to(device)
             
-                total_loss_gen += torch.mean(calc_cd(dense_pred, c)[0])
-                total_loss_disc += torch.mean((loss_fake - 1) ** 2)
+                total_loss_gen += torch.mean(calc_cd(dense_pred, c)[0]).item()
+                total_loss_disc += torch.mean((loss_fake - 1) ** 2).item()
                 i += 1
         
         total_loss_gen /= i
         total_loss_disc /= i
-        logger_gen.val_data.append(float(total_loss_gen))
-        logger_disc.val_data.append(float(total_loss_disc))
-        lr_schedual_gen.step(float(total_loss_gen))
-        lr_schedual_disc.step(float(total_loss_disc))
+        logger_gen.val_data.append(total_loss_gen)
+        logger_disc.val_data.append(total_loss_disc)
+        #lr_schedual_gen.step(total_loss_gen)
+        #lr_schedual_disc.step(total_loss_disc)
         
         if ((total_loss_gen / i) < best_val_gen):
             best_val_gen = total_loss_gen / i
