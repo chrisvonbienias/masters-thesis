@@ -3,19 +3,19 @@ from tqdm import tqdm
 import plyfile
 import numpy as np
 import open3d as o3d
-from skimage.color import rgb2lab
+from skimage.color import rgb2lab, lab2rgb
 
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from models import PCN, FinerPCN
+from models import PCN, FinerPCN, MSN, CRN_Generator
 from dataset import ShapeNet
 from train import NUM_DENSE
-from utils.model_utils import calc_dcd, calc_cd
+from utils.model_utils import calc_dcd, calc_cd, calc_emd
 
 BATCH_SIZE = 32
-MODEL_NAME = 'FinerPCN'
-MODEL_PATH = 'checkpoint/FinerPCN/FinerPCN_CD_7_28_19:23.pth'
+MODEL_NAME = 'CRN'
+MODEL_PATH = 'checkpoint/CRN/CRN_GEN_DCD_8_2_14:4.pth'
 NUM_DENSE = 8192
 
 def read_point_cloud(path):
@@ -31,6 +31,7 @@ def read_point_cloud(path):
         vertices[:, 3:] = rgb2lab(vertices[:, 3:] / 255, illuminant='D65') / 100
 
         return vertices
+    
     
 def random_sample(pc, n):
         idx = np.random.permutation(pc.shape[0])
@@ -57,6 +58,10 @@ def test() -> None:
         model = PCN(num_dense=NUM_DENSE, latent_dim=1024, grid_size=4).to(device)
     elif MODEL_NAME == 'FinerPCN':
         model = FinerPCN(num_dense=NUM_DENSE, grid_size=4, grid_scale=0.5).to(device)
+    elif MODEL_NAME == 'MSN':
+        model = MSN(num_points=NUM_DENSE).to(device)
+    elif MODEL_NAME == 'CRN':
+        model = CRN_Generator(num_dense=NUM_DENSE).to(device)
     else:
         raise ValueError(f'Model {MODEL_NAME} not implemented')
     
@@ -64,8 +69,12 @@ def test() -> None:
     model.eval()
     print('Model loaded!')
     
-    seen_loss = 0
-    unseen_loss = 0
+    seen_loss_cd = 0
+    seen_loss_dcd = 0
+    seen_loss_emd = 0
+    unseen_loss_cd = 0
+    unseen_loss_dcd = 0
+    unseen_loss_emd = 0
     with torch.no_grad():
         
         i = 0
@@ -73,30 +82,36 @@ def test() -> None:
             c = c.to(device)
             p = p.to(device)
             
-            _, dense_pred = model(p)
+            _, dense_pred, *other = model(p)
             
-            loss = torch.mean(calc_cd(dense_pred, c)[0])
-            seen_loss += loss
+            seen_loss_cd += torch.mean(calc_cd(dense_pred, c)[0]).item()
+            seen_loss_dcd += torch.mean(calc_dcd(dense_pred, c)[0]).item()
+            seen_loss_emd += (torch.mean(calc_emd(dense_pred[:, :, :3], c[:, :, :3])).item() + torch.mean(calc_emd(dense_pred[:, :, 3:], c[:, :, 3:])).item()) / 2
             i += 1
             
-        seen_loss = seen_loss / i
+        seen_loss_cd = seen_loss_cd / i
+        seen_loss_dcd = seen_loss_dcd / i
+        seen_loss_emd = seen_loss_emd / i
         i = 0
         
         for c, p in tqdm(test_unseen_dataloader, desc='Testing unseen...'):
             c = c.to(device)
             p = p.to(device)
             
-            _, dense_pred = model(p)
+            _, dense_pred, *other = model(p)
             
-            loss = torch.mean(calc_cd(dense_pred, c)[0])
-            unseen_loss += loss
+            unseen_loss_cd += torch.mean(calc_cd(dense_pred, c)[0]).item()
+            unseen_loss_dcd += torch.mean(calc_dcd(dense_pred, c)[0]).item()
+            unseen_loss_emd += (torch.mean(calc_emd(dense_pred[:, :, :3], c[:, :, :3])).item() + torch.mean(calc_emd(dense_pred[:, :, 3:], c[:, :, 3:])).item()) / 2
             i += 1
             
-        unseen_loss = unseen_loss / i
+        unseen_loss_cd = unseen_loss_cd / i
+        unseen_loss_dcd = unseen_loss_dcd / i
+        unseen_loss_emd = unseen_loss_emd / i
             
-    print(f'Seen loss: {seen_loss}')
-    print(f'Unseen loss: {unseen_loss}')
-    
+    print(f'Seen loss | CD: {seen_loss_cd} | DCD: {seen_loss_dcd} | EMD: {seen_loss_emd} |')
+    print(f'Unseen loss | CD: {unseen_loss_cd} | DCD: {unseen_loss_dcd} | EMD: {unseen_loss_emd} |')
+
     
 def show_examples():
 
