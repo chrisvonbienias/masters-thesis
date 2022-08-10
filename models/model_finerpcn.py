@@ -15,41 +15,41 @@ class FinerPCN(nn.Module):
         self.num_coarse = self.num_dense // (self.grid_size ** 2)
         
         self.mlpConv256 = nn.Sequential(
-            nn.Conv1d(6, 128, 1),
-            nn.PReLU(),
-            # nn.batchNorm1d(128),
+            nn.Conv1d(6, 128, 1, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm1d(128),
             nn.Conv1d(128, 256, 1)
         )
         
         self.mlpConv512 = nn.Sequential(
-            nn.Conv1d(256, 512, 1),
-            nn.PReLU(),
-            # nn.batchNorm1d(512),
+            nn.Conv1d(256, 512, 1, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm1d(512),
         )
 
         self.mlpConv1024 = nn.Sequential(
-            nn.Conv1d(512, 512, 1),
-            nn.PReLU(),
-            # nn.batchNorm1d(512),
+            nn.Conv1d(512, 512, 1, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm1d(512),
             nn.Conv1d(512, 1024, 1)
         )
         
         self.mlpConvFinal = nn.Sequential(
-            nn.Conv1d(1024, 512, 1),
-            nn.PReLU(),
-            # nn.batchNorm1d(512),
-            nn.Conv1d(512, 256, 1),
-            nn.PReLU(),
-            # nn.batchNorm1d(256),
+            nn.Conv1d(1024, 512, 1, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm1d(512),
+            nn.Conv1d(512, 256, 1, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
             nn.Conv1d(256, 48, 1)
         )
         
         self.mlp = nn.Sequential(
             nn.Linear(1024, 1024),
-            nn.PReLU(),
+            nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(1024, 1024),
-            nn.PReLU(),
+            nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(1024, 6 * self.num_coarse)
         )
