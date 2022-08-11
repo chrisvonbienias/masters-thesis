@@ -74,7 +74,7 @@ class CPN(nn.Module):
             outs.append(self.decoder[i](y))
             
         outs = torch.cat(outs, 2)
-        coarse = outs.transpose(2, 1) # (B, DENSE, 6)
+        coarse = outs.transpose(2, 1) # (B, COARSE, 6)
         
         # EXPANSION LOSS
         dist, _, mean_mst_dis = self.expansion(coarse, self.num_coarse // self.num_primitives, 1.5)
