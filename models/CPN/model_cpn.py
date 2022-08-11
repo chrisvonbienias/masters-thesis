@@ -2,6 +2,8 @@ import sys
 
 import torch
 import torch.nn as nn
+from pytorch3d.ops import sample_farthest_points
+from torchsummary import summary
 
 from pvconv import PVConv
 from shared_mlp import SharedMLP
@@ -10,6 +12,43 @@ sys.path.append("/home/kbieniek/Desktop/masters-thesis/utils/expansion_penalty")
 import expansion_penalty_module as expansion
 sys.path.append("/home/kbieniek/Desktop/masters-thesis/utils/MDS")
 import MDS_module
+
+
+class ResidualNetwork(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        
+        self.pvconv = nn.ModuleList((
+            PVConv(6, 16, kernel_size=3, resolution=4),
+            PVConv(16, 32, kernel_size=3, resolution=4),
+            PVConv(32, 64, kernel_size=3, resolution=8),
+            PVConv(64, 128, kernel_size=3, resolution=8),
+            PVConv(128, 256, kernel_size=3, resolution=16),
+            PVConv(256, 512, kernel_size=3, resolution=16)
+        ))
+        
+        self.mpl = nn.Sequential(
+            SharedMLP(1008, 512),
+            SharedMLP(512, 256),
+            SharedMLP(256, 6),
+        )
+        
+    
+    def forward(self, input):
+        output = []
+        input = input.transpose(2, 1)
+        features = input
+        coords = input[:, :3, :]
+        for i in range(0, len(self.pvconv)):
+            features, coords = self.pvconv[i]((features, coords))
+            output.append(features)
+            
+        output = torch.cat(output, dim=1)
+        output = self.mpl(output)
+        output = torch.cat((input, output), dim=2)
+        
+        return output.transpose(2, 1)
+
 
 class MorphingDecoder(nn.Module):
     def __init__(self, latent_dim=1024) -> None:
@@ -33,7 +72,7 @@ class MorphingDecoder(nn.Module):
 
 
 class CPN(nn.Module):
-    def __init__(self, num_dense=8192, latent_dim=1024, num_primitives=8) -> None:
+    def __init__(self, num_dense=4096, latent_dim=1024, num_primitives=8) -> None:
         super().__init__()
         
         self.num_dense = num_dense
@@ -54,6 +93,8 @@ class CPN(nn.Module):
         )
         
         self.decoder = nn.ModuleList(MorphingDecoder(self.latent_dim + 2) for i in range(0, self.num_primitives))
+        self.expansion = expansion.expansionPenaltyModule()
+        self.residual_network = ResidualNetwork()
         
         
     def forward(self, xyz):
@@ -77,22 +118,20 @@ class CPN(nn.Module):
         coarse = outs.transpose(2, 1) # (B, COARSE, 6)
         
         # EXPANSION LOSS
-        dist, _, mean_mst_dis = self.expansion(coarse, self.num_coarse // self.num_primitives, 1.5)
+        dist, _, _ = self.expansion(coarse, self.num_coarse // self.num_primitives, 1.5)
         exp_loss = torch.mean(dist)
         
         # MINIMUM DENSITY SAMPLE
-        dense = torch.cat((xyz.tranpose(2, 1), coarse), dim=1)
-        mds_idx = MDS_module.minimum_density_sample(dense.contiguous(), dense.shape(1), mean_mst_dis)
-        dense = MDS_module.gather_operation(dense, mds_idx)
+        dense = torch.cat((xyz.transpose(2, 1), coarse), dim=1)
+        dense = sample_farthest_points(coarse, K=self.num_dense // 2)[0] 
         
         # RESIDUAL NETWORK
-        
+        dense = self.residual_network(dense)
         
         return coarse, dense, exp_loss
     
     
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    pt = torch.randn((32, 2048, 6), device=device)
-    model = CPN(4096).to(device)
-    res = model(pt)
+    model = CPN().to(device)
+    print(model)
