@@ -128,7 +128,7 @@ class CPN(nn.Module):
         
         # RESIDUAL NETWORK
         dense = self.residual_network(dense)
-        dense = sample_farthest_points(coarse, K=self.num_dense)[0] 
+        dense = sample_farthest_points(coarse, K=self.num_dense)[0] # (B, DENSE, 6)
         
         return coarse, dense, exp_loss
     
