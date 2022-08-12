@@ -118,15 +118,17 @@ class CPN(nn.Module):
         coarse = outs.transpose(2, 1) # (B, COARSE, 6)
         
         # EXPANSION LOSS
-        dist, _, _ = self.expansion(coarse, self.num_coarse // self.num_primitives, 1.5)
+        dist, _, mean_mst_dis = self.expansion(coarse, self.num_coarse // self.num_primitives, 1.5)
         exp_loss = torch.mean(dist)
         
         # MINIMUM DENSITY SAMPLE
         dense = torch.cat((xyz.transpose(2, 1), coarse), dim=1)
-        dense = sample_farthest_points(coarse, K=self.num_dense // 2)[0] 
+        resampled_idx = MDS_module.minimum_density_sample(dense.contiguous(), dense.shape[1], mean_mst_dis) 
+        dense = MDS_module.gather_operation(dense, resampled_idx)
         
         # RESIDUAL NETWORK
         dense = self.residual_network(dense)
+        dense = sample_farthest_points(coarse, K=self.num_dense)[0] 
         
         return coarse, dense, exp_loss
     
