@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from torchsummary import summary
 
+sys.path.append("/home/kbieniek/Desktop/masters-thesis/models/CPN")
 from pvconv import PVConv
 from shared_mlp import SharedMLP
 
@@ -14,7 +15,7 @@ import MDS_module
 
 
 class ResidualNetwork(nn.Module):
-    def __init__(self, num_coarse=1024) -> None:
+    def __init__(self) -> None:
         super().__init__()
         
         self.pvconv = nn.ModuleList((
@@ -71,14 +72,14 @@ class MorphingDecoder(nn.Module):
 
 
 class CPN(nn.Module):
-    def __init__(self, num_dense=4096, latent_dim=1024, num_primitives=8, num_cat=9) -> None:
+    def __init__(self, num_dense=4096, latent_dim=1024, num_primitives=8, num_cat=47) -> None:
         super().__init__()
         
         self.num_dense = num_dense
         self.num_coarse = num_dense // 4
         self.latent_dim = latent_dim
         self.num_primitives = num_primitives
-        self.num_cat = num_cat
+        self.num_cat = num_cat + 1
         
         self.encoder = nn.Sequential(
             PVConv(6, 256, kernel_size=3, resolution=16),
@@ -87,9 +88,9 @@ class CPN(nn.Module):
         )
         
         self.label_encoder = nn.Sequential(
-            nn.Embedding(9, 16, padding_idx=0),
+            nn.Embedding(self.num_cat, 3, padding_idx=0),
             nn.Flatten(),
-            nn.Linear(self.num_cat * 16, 256),
+            nn.Linear(self.num_cat * 3, 256),
             nn.Dropout(0.2),
             nn.Linear(256, 512)
         )
@@ -143,10 +144,36 @@ class CPN(nn.Module):
         
         return coarse, dense, exp_loss
     
-    
+
+class CPN_Discriminator(nn.Module):
+    def __init__(self, num_dense=4096, latent_dim=1024) -> None:
+        super().__init__()
+        
+        self.num_dense = num_dense
+        self.latent_dim = latent_dim
+        
+        self.network = nn.Sequential(
+            PVConv(6, 128, 16),
+            PVConv(128, 256, 16),
+            PVConv(256, 512, 8),
+            PVConv(512, self.latent_dim, 8),
+            nn.Dropout(0.2),
+            nn.Linear(self.latent_dim, 512),
+            nn.ELU(inplace=True),
+            nn.Dropout(0.2),
+            nn.Linear(512, 256),
+            nn.ELU(inplace=True),
+            nn.Linear(256, 1)
+        )
+        
+        
+    def forward(self, input):
+        return self.network(input)
+            
+            
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = CPN().to(device)
     pt = torch.randn((8, 2048, 6), device=device)
-    label = torch.randint(0, 2, (8, 9), device=device)
+    label = torch.randint(0, 2, (8, 48), device=device)
     model((label, pt))
