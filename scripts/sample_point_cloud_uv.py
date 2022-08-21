@@ -25,7 +25,7 @@ def main() -> None:
             except:
                 continue
             mesh.compute_color_transfer_face_to_vertex()
-            mesh.generate_sampling_montecarlo(samplenum=16384, radiusvariance=0.5, exactnum=True)
+            mesh.generate_sampling_poisson_disk(samplenum=16384, radiusvariance=0.5, exactnum=True)
             mesh.transfer_attributes_per_vertex(sourcemesh=0, targetmesh=1)
             ply_path = f'{save_path}/{model}.ply'
             mesh.save_current_mesh(ply_path)
